@@ -1,0 +1,276 @@
+.home {
+  min-height: calc(100vh - 200px);
+}
+
+.hero {
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
+  padding: var(--space-20) 0 var(--space-16);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23e0f2fe" fill-opacity="0.3"><circle cx="30" cy="30" r="4"/></g></svg>') repeat;
+  opacity: 0.5;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.heroTitle {
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--secondary-900);
+  margin-bottom: var(--space-6);
+  line-height: var(--line-height-tight);
+}
+
+.heroSubtitle {
+  font-size: var(--font-size-xl);
+  color: var(--secondary-600);
+  margin-bottom: var(--space-10);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: var(--line-height-relaxed);
+}
+
+.heroActions {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: white;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-800));
+  text-decoration: none;
+  color: white;
+}
+
+.primaryButton:focus {
+  outline: 3px solid var(--primary-300);
+  outline-offset: 2px;
+}
+
+.secondaryButton {
+  background-color: white;
+  color: var(--secondary-700);
+  padding: var(--space-4) var(--space-8);
+  border: 2px solid var(--secondary-300);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.secondaryButton:hover {
+  background-color: var(--secondary-50);
+  border-color: var(--secondary-400);
+  transform: translateY(-1px);
+  text-decoration: none;
+  color: var(--secondary-800);
+}
+
+.secondaryButton:focus {
+  outline: 3px solid var(--primary-300);
+  outline-offset: 2px;
+}
+
+.features {
+  padding: var(--space-20) 0;
+  background-color: white;
+}
+
+.featuresTitle {
+  text-align: center;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--secondary-900);
+  margin-bottom: var(--space-16);
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature {
+  text-align: center;
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--secondary-50);
+  transition: all var(--transition-base);
+}
+
+.feature:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  background-color: white;
+}
+
+.featureIcon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-6);
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  border-radius: var(--radius-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xl);
+  color: white;
+}
+
+.featureTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-900);
+  margin-bottom: var(--space-4);
+}
+
+.featureDescription {
+  color: var(--secondary-600);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: 0;
+}
+
+.cta {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: white;
+  padding: var(--space-20) 0;
+  text-align: center;
+}
+
+.ctaTitle {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-6);
+  color: white;
+}
+
+.ctaDescription {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-10);
+  opacity: 0.9;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ctaButton {
+  background-color: white;
+  color: var(--primary-700);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+  color: var(--primary-800);
+}
+
+.ctaButton:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 639px) {
+  .hero {
+    padding: var(--space-16) 0 var(--space-12);
+  }
+  
+  .heroTitle {
+    font-size: var(--font-size-4xl);
+  }
+  
+  .heroSubtitle {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-8);
+  }
+  
+  .heroActions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+  }
+  
+  .features {
+    padding: var(--space-16) 0;
+  }
+  
+  .featuresGrid {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+  
+  .feature {
+    padding: var(--space-6);
+  }
+  
+  .cta {
+    padding: var(--space-16) 0;
+  }
+  
+  .ctaTitle {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .ctaDescription {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-8);
+  }
+}
