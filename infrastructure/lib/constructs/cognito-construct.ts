@@ -1,5 +1,4 @@
-import { CfnOutput, Tags } from "aws-cdk-lib";
-import { aws_cognito as cognito, aws_iam as iam } from "aws-cdk-lib";
+import { CfnOutput, Tags, aws_cognito as cognito, aws_iam as iam } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { CognitoConstructProps } from "../types";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
@@ -32,7 +31,7 @@ export class CognitoConstruct extends Construct {
       | cognito.UserPoolTriggers
       | undefined => {
       if (!props.triggerFunctions) return undefined;
-      const lt: any = {};
+      const lt: Partial<cognito.UserPoolTriggers> = {};
       if (props.triggerFunctions.preSignup)
         lt.preSignUp = props.triggerFunctions.preSignup;
       if (props.triggerFunctions.postConfirmation)

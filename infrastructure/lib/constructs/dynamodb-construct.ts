@@ -1,7 +1,6 @@
 import {
   CfnOutput,
   RemovalPolicy,
-  Stack,
   Tags,
   aws_dynamodb as dynamodb,
 } from "aws-cdk-lib";

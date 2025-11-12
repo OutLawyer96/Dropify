@@ -16,6 +16,7 @@ import {
 import { Construct } from "constructs";
 import { EnvironmentConfig, Stage } from "./types";
 import { buildAllowedOrigins } from "./config/cors";
+import { CognitoConstruct } from "./constructs/cognito-construct";
 
 export interface DropifyBackendStackProps extends StackProps {
   stage: Stage;
@@ -296,8 +297,6 @@ export class DropifyBackendStack extends Stack {
     this.usersTable.grantReadWriteData(preTokenFn);
 
     // Instantiate Cognito Construct and wire triggers
-    // Lazy import to avoid circular type issues in types
-    const { CognitoConstruct } = require("./constructs/cognito-construct");
     const cognitoConstruct = new CognitoConstruct(this, "Cognito", {
       stage,
       environmentConfig,

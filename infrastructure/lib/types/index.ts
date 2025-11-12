@@ -177,7 +177,7 @@ export interface UserAttributes {
   name?: string;
   given_name?: string;
   family_name?: string;
-  [key: string]: any;
+  [key: string]: string | boolean | number | undefined;
 }
 
 export interface AuthenticatedUser {
@@ -187,7 +187,7 @@ export interface AuthenticatedUser {
   plan?: string;
   storageUsed?: number;
   storageLimit?: number;
-  [key: string]: any;
+  [key: string]: string | number | undefined;
 }
 
 export interface CognitoAuthorizerConfig {
@@ -248,7 +248,7 @@ export interface DynamoDBUserRecord {
   lastLoginAt?: string;
   storageUsed: number;
   storageLimit: number;
-  preferences?: Record<string, any>;
+  preferences?: Record<string, string | number | boolean>;
 }
 
 // ===========================
@@ -286,9 +286,9 @@ export interface QueryOptions {
   indexName?: string;
   limit?: number;
   scanIndexForward?: boolean;
-  exclusiveStartKey?: Record<string, any>;
+  exclusiveStartKey?: Record<string, string | number>;
   filterExpression?: string;
-  expressionAttributeValues?: Record<string, any>;
+  expressionAttributeValues?: Record<string, string | number | boolean>;
 }
 
 export interface ListFilesParams {
@@ -296,7 +296,7 @@ export interface ListFilesParams {
   limit?: number;
   sortBy?: "uploadTime" | "size" | "name";
   sortOrder?: "asc" | "desc";
-  lastEvaluatedKey?: Record<string, any>;
+  lastEvaluatedKey?: Record<string, string | number>;
 }
 
 export interface CreateFileParams {
@@ -330,6 +330,6 @@ export interface CreateShareLinkParams {
 
 export interface PaginatedResult<T> {
   items: T[];
-  lastEvaluatedKey?: Record<string, any>;
+  lastEvaluatedKey?: Record<string, string | number>;
   count: number;
 }
