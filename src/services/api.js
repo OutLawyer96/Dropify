@@ -1,224 +1,338 @@
-// API Service for Dropify
-// This file will handle all HTTP requests to the backend API
-import { API } from '../utils/constants';
+import axios from "axios";
+import { apiConfig } from "../config/aws-config";
+import { API, ERRORS } from "../utils/constants";
+import { getJwtToken, refreshTokenIfNeeded } from "../utils/helpers";
 
-// Base configuration
+const apiClient = axios.create({
+  baseURL: apiConfig.baseURL,
+  timeout: apiConfig.timeout,
+  headers: apiConfig.headers,
+});
 
-// Request configuration
-const defaultConfig = {
-  headers: {
-    'Content-Type': 'application/json',
-  },
-};
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Helper function to handle API responses
-const handleResponse = async (response) => {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Network error' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+const sanitizeParams = (params = {}) =>
+  Object.fromEntries(
+    Object.entries(params).filter(
+      ([, value]) => value !== undefined && value !== null && value !== ""
+    )
+  );
+
+const interpolateEndpoint = (template, params = {}) =>
+  template.replace(/:([a-zA-Z]+)/gu, (match, key) => {
+    if (!(key in params)) {
+      return match;
+    }
+    return encodeURIComponent(params[key]);
+  });
+
+const isRetryableError = (error) => {
+  if (!error || !error.response) {
+    return true;
   }
-  return response.json();
+
+  const { status } = error.response;
+  return [408, 425, 429, 500, 502, 503, 504].includes(status);
 };
 
-// Helper function to handle file upload responses
-const handleFileResponse = async (response) => {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Upload failed' }));
-    throw new Error(error.message || `Upload error! status: ${response.status}`);
+const mapErrorMessage = (status) => {
+  switch (status) {
+    case 400:
+      return ERRORS.UPLOAD_FAILED;
+    case 401:
+      return ERRORS.UNAUTHORIZED;
+    case 403:
+      return ERRORS.FORBIDDEN;
+    case 404:
+      return ERRORS.FILE_NOT_FOUND;
+    case 413:
+      return ERRORS.FILE_TOO_LARGE;
+    default:
+      return ERRORS.SERVER_ERROR;
   }
-  return response.json();
 };
 
-// API Service object
+const handleApiError = (error) => {
+  if (!error) {
+    return new Error(ERRORS.SERVER_ERROR);
+  }
+
+  if (axios.isCancel(error)) {
+    return error;
+  }
+
+  if (!error.response) {
+    return new Error(ERRORS.NETWORK_ERROR);
+  }
+
+  const { status, data } = error.response;
+
+  console.error("🔴 API Error Response:", {
+    status,
+    data,
+    dataString: JSON.stringify(data, null, 2),
+    fullError: error,
+  });
+
+  // Try to parse backend error envelope: { success: false, error: { code, message } }
+  const apiError = data?.error;
+  if (apiError?.message) {
+    // Map known error codes to frontend constants
+    if (apiError.code === "QUOTA_EXCEEDED") {
+      return new Error(ERRORS.QUOTA_EXCEEDED);
+    }
+    if (apiError.code === "UNAUTHORIZED") {
+      return new Error(ERRORS.UNAUTHORIZED);
+    }
+    if (apiError.code === "FORBIDDEN") {
+      return new Error(ERRORS.FORBIDDEN);
+    }
+    return new Error(apiError.message);
+  }
+
+  // Fallback to status-based mapping
+  const fallbackMessage = mapErrorMessage(status);
+  const message = data?.message || fallbackMessage;
+  return new Error(message);
+};
+
+const executeWithRetry = async (operation, attempt = 1) => {
+  try {
+    return await operation();
+  } catch (error) {
+    if (isRetryableError(error) && attempt < API.RETRY_ATTEMPTS) {
+      await delay(API.RETRY_DELAY * attempt);
+      return executeWithRetry(operation, attempt + 1);
+    }
+
+    throw handleApiError(error);
+  }
+};
+
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getJwtToken();
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+
+    if (
+      originalRequest &&
+      !originalRequest.__isRetryRequest &&
+      status === 401
+    ) {
+      try {
+        const refreshed = await refreshTokenIfNeeded();
+        if (!refreshed) {
+          throw error;
+        }
+        originalRequest.__isRetryRequest = true;
+        const newToken = await getJwtToken();
+        if (newToken) {
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        }
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 const apiService = {
-  // File Upload Operations
   upload: {
-    // Upload single file
-    single: async (file, onProgress = null) => {
-      // TODO: Implement single file upload
-      // This will be implemented by the team working on upload functionality
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            id: 'placeholder-id',
-            filename: file.name,
-            size: file.size,
-            url: '/placeholder-url',
-            shareLink: '/placeholder-share-link'
-          });
-        }, 1000);
-      });
+    single: async (file, onProgress, options = {}) => {
+      const makeRequest = async () => {
+        const payload = {
+          filename: file.name,
+          contentType: file.type || "application/octet-stream",
+          size: file.size,
+        };
+
+        const response = await apiClient.post(API.ENDPOINTS.UPLOAD, payload);
+        const data = response.data?.data || response.data;
+
+        const { uploadUrl, key, uploadId } = data;
+        if (!uploadUrl) {
+          throw new Error(ERRORS.UPLOAD_FAILED);
+        }
+
+        await axios.put(uploadUrl, file, {
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+          },
+          onUploadProgress: (event) => {
+            if (!onProgress || !event.total) return;
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
+          },
+          signal: options.signal,
+        });
+
+        return {
+          uploadUrl,
+          key,
+          uploadId,
+          fileId: data.fileId || data.id || key,
+          status: "uploaded",
+        };
+      };
+
+      return executeWithRetry(makeRequest);
     },
 
-    // Upload multiple files
-    multiple: async (files, onProgress = null) => {
-      // TODO: Implement multiple files upload
-      // This will be implemented by the team working on upload functionality
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(files.map((file, index) => ({
-            id: `placeholder-id-${index}`,
-            filename: file.name,
-            size: file.size,
-            url: `/placeholder-url-${index}`,
-            shareLink: `/placeholder-share-link-${index}`
-          })));
-        }, 2000);
-      });
+    multiple: async (files, onProgress, options = {}) => {
+      const results = [];
+      for (const file of files) {
+        const result = await apiService.upload.single(
+          file,
+          (percent) => onProgress?.(file, percent),
+          options
+        );
+        results.push(result);
+      }
+      return results;
     },
-
-    // Get upload progress
-    getProgress: async (uploadId) => {
-      // TODO: Implement upload progress tracking
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            uploadId,
-            progress: 75,
-            status: 'uploading'
-          });
-        }, 500);
-      });
-    }
   },
 
-  // File Management Operations
   files: {
-    // Get all user files
-    list: async (page = 1, limit = 20) => {
-      // TODO: Implement file listing
-      // This will be implemented by the team working on file management
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            files: [],
-            totalCount: 0,
-            page,
-            totalPages: 0
-          });
-        }, 1000);
+    list: async ({ limit, lastKey, sortBy, filterBy, searchTerm } = {}) => {
+      const params = sanitizeParams({
+        limit,
+        lastKey,
+        sortBy,
+        filterBy,
+        search: searchTerm,
+      });
+      return executeWithRetry(async () => {
+        const response = await apiClient.get(API.ENDPOINTS.FILES, { params });
+        return response.data?.data || response.data;
       });
     },
 
-    // Get file details
     get: async (fileId) => {
-      // TODO: Implement get file details
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            id: fileId,
-            filename: 'placeholder.txt',
-            size: 1024,
-            uploadDate: new Date().toISOString(),
-            downloadCount: 0,
-            shareLink: '/placeholder-share-link'
-          });
-        }, 500);
+      const endpoint = interpolateEndpoint(API.ENDPOINTS.FILE_DETAILS, {
+        id: fileId,
+      });
+      return executeWithRetry(async () => {
+        const response = await apiClient.get(endpoint);
+        return response.data?.data || response.data;
       });
     },
 
-    // Delete file
     delete: async (fileId) => {
-      // TODO: Implement file deletion
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true, message: 'File deleted successfully' });
-        }, 500);
+      const endpoint = interpolateEndpoint(API.ENDPOINTS.FILE_DELETE, {
+        id: fileId,
+      });
+      return executeWithRetry(async () => {
+        const response = await apiClient.delete(endpoint);
+        return response.data?.data || response.data;
       });
     },
 
-    // Update file metadata
     update: async (fileId, metadata) => {
-      // TODO: Implement file metadata update
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            id: fileId,
-            ...metadata,
-            updatedAt: new Date().toISOString()
-          });
-        }, 500);
+      const endpoint = interpolateEndpoint(API.ENDPOINTS.FILE_UPDATE, {
+        id: fileId,
       });
-    }
+      return executeWithRetry(async () => {
+        const response = await apiClient.put(endpoint, metadata);
+        return response.data?.data || response.data;
+      });
+    },
   },
 
-  // Sharing Operations
   sharing: {
-    // Generate share link
     generateLink: async (fileId, options = {}) => {
-      // TODO: Implement share link generation
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            shareLink: `${window.location.origin}/share/${fileId}`,
-            expiresAt: options.expiresAt || null,
-            password: options.password || null,
-            downloadLimit: options.downloadLimit || null
-          });
-        }, 500);
+      return executeWithRetry(async () => {
+        console.log(
+          "🟡 API Service - Received fileId:",
+          fileId,
+          "options:",
+          options
+        );
+        const payload = {
+          fileId,
+          expiresInDays: options.expiresInDays ?? null,
+          downloadLimit: options.maxDownloads ?? null, // Backend expects 'downloadLimit'
+          password: options.password ?? null,
+          isEphemeral: options.isEphemeral ?? false,
+        };
+        console.log(
+          "🔵 API Service - Sending payload:",
+          JSON.stringify(payload, null, 2)
+        );
+        const response = await apiClient.post(API.ENDPOINTS.SHARE, payload);
+        console.log("✅ API Service - Response:", response);
+        return response.data?.data || response.data;
       });
     },
 
-    // Get sharing analytics
-    getAnalytics: async (fileId) => {
-      // TODO: Implement sharing analytics
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            fileId,
-            totalViews: 0,
-            totalDownloads: 0,
-            recentActivity: []
-          });
-        }, 500);
+    listLinks: async (fileId) => {
+      const endpoint = interpolateEndpoint(API.ENDPOINTS.SHARE_LIST, {
+        id: fileId,
+      });
+      return executeWithRetry(async () => {
+        const response = await apiClient.get(endpoint);
+        return response.data?.data?.shares || response.data?.shares || [];
       });
     },
 
-    // Update sharing settings
-    updateSettings: async (shareId, settings) => {
-      // TODO: Implement sharing settings update
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            shareId,
-            ...settings,
-            updatedAt: new Date().toISOString()
-          });
-        }, 500);
+    getAnalytics: async (shareId) => {
+      const endpoint = interpolateEndpoint(API.ENDPOINTS.SHARE_ANALYTICS, {
+        id: shareId,
       });
-    }
+      return executeWithRetry(async () => {
+        const response = await apiClient.get(endpoint);
+        return response.data?.data || response.data;
+      });
+    },
+
+    deleteLink: async (shareId) => {
+      const endpoint = interpolateEndpoint(API.ENDPOINTS.SHARE_DELETE, {
+        id: shareId,
+      });
+      return executeWithRetry(async () => {
+        const response = await apiClient.delete(endpoint);
+        return response.data?.data || response.data;
+      });
+    },
   },
 
-  // User Operations (for future authentication)
   user: {
-    // Get user profile
     getProfile: async () => {
-      // TODO: Implement user profile retrieval
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            id: 'placeholder-user-id',
-            email: 'user@example.com',
-            storageUsed: 0,
-            storageLimit: 5368709120 // 5GB in bytes
-          });
-        }, 500);
+      return executeWithRetry(async () => {
+        const response = await apiClient.get(API.ENDPOINTS.USER_PROFILE);
+        return response.data?.data || response.data;
       });
     },
 
-    // Update user settings
     updateSettings: async (settings) => {
-      // TODO: Implement user settings update
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            ...settings,
-            updatedAt: new Date().toISOString()
-          });
-        }, 500);
+      return executeWithRetry(async () => {
+        const response = await apiClient.put(
+          API.ENDPOINTS.USER_SETTINGS,
+          settings
+        );
+        return response.data?.data || response.data;
       });
-    }
-  }
+    },
+  },
 };
+
+export const useApiService = () => {
+  return apiService;
+};
+
+export { apiClient };
 
 export default apiService;

@@ -1,4 +1,64 @@
 // Helper utility functions for Dropify
+import { ERRORS, FILE_UPLOAD } from "./constants";
+
+let sessionProvider;
+let refreshProvider;
+
+const decodeJwtPayload = (token) => {
+  try {
+    const [, payload = ""] = token.split(".");
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "="
+    );
+    let decoded = "";
+    if (typeof window !== "undefined" && typeof window.atob === "function") {
+      decoded = window.atob(padded);
+    } else if (typeof Buffer !== "undefined") {
+      decoded = Buffer.from(padded, "base64").toString("binary");
+    }
+    return JSON.parse(decoded);
+  } catch (error) {
+    console.warn("Unable to decode JWT payload", error);
+    return {};
+  }
+};
+
+export const registerAuthAccessors = ({ getSession, refreshSession }) => {
+  sessionProvider = getSession;
+  refreshProvider = refreshSession;
+};
+
+export const getJwtToken = async () => {
+  if (typeof sessionProvider !== "function") return null;
+  const session = await sessionProvider();
+  return session?.getIdToken?.()?.getJwtToken() ?? null;
+};
+
+export const isTokenExpired = (token, bufferSeconds = 0) => {
+  if (!token) return true;
+  const payload = decodeJwtPayload(token);
+  if (!payload.exp) return true;
+  const now = Date.now();
+  return payload.exp * 1000 <= now + bufferSeconds * 1000;
+};
+
+export const refreshTokenIfNeeded = async () => {
+  const currentToken = await getJwtToken();
+  if (!currentToken) return null;
+
+  if (!isTokenExpired(currentToken, 300)) {
+    return currentToken;
+  }
+
+  if (typeof refreshProvider !== "function") {
+    return null;
+  }
+
+  const session = await refreshProvider();
+  return session?.getIdToken?.()?.getJwtToken() ?? null;
+};
 
 /**
  * Format file size in human readable format
@@ -7,15 +67,15 @@
  * @returns {string} Formatted file size
  */
 export const formatFileSize = (bytes, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes';
-  
+  if (bytes === 0) return "0 Bytes";
+
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 };
 
 /**
@@ -24,36 +84,46 @@ export const formatFileSize = (bytes, decimals = 2) => {
  * @param {string} format - Format type ('relative', 'short', 'long')
  * @returns {string} Formatted date
  */
-export const formatDate = (date, format = 'relative') => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
-  if (format === 'relative') {
+export const formatDate = (date, format = "relative") => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  if (format === "relative") {
     const now = new Date();
     const diffInSeconds = Math.floor((now - dateObj) / 1000);
-    
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+
+    if (diffInSeconds < 60) return "Just now";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 2592000)
+      return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    if (diffInSeconds < 31536000)
+      return `${Math.floor(diffInSeconds / 2592000)} months ago`;
     return `${Math.floor(diffInSeconds / 31536000)} years ago`;
   }
-  
-  if (format === 'short') {
+
+  if (format === "short") {
     return dateObj.toLocaleDateString();
   }
-  
-  if (format === 'long') {
-    return dateObj.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+
+  if (format === "long") {
+    return dateObj.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
-  
+
   return dateObj.toLocaleDateString();
+};
+
+export const formatRelativeTime = (timestamp) => {
+  if (!timestamp) return "";
+  const value = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+  return formatDate(value, "relative");
 };
 
 /**
@@ -62,9 +132,9 @@ export const formatDate = (date, format = 'relative') => {
  * @returns {string} File extension in lowercase
  */
 export const getFileExtension = (filename) => {
-  if (!filename || typeof filename !== 'string') return '';
-  const parts = filename.split('.');
-  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+  if (!filename || typeof filename !== "string") return "";
+  const parts = filename.split(".");
+  return parts.length > 1 ? parts.pop().toLowerCase() : "";
 };
 
 /**
@@ -74,24 +144,74 @@ export const getFileExtension = (filename) => {
  */
 export const getFileCategory = (filename) => {
   const extension = getFileExtension(filename);
-  
+
   const categories = {
-    image: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'],
-    document: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'odt', 'ods', 'odp'],
-    archive: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'],
-    audio: ['mp3', 'wav', 'ogg', 'm4a', 'webm', 'flac', 'aac'],
-    video: ['mp4', 'webm', 'ogg', 'avi', 'mov', 'wmv', 'flv', 'mkv'],
-    code: ['js', 'html', 'css', 'json', 'xml', 'md', 'py', 'java', 'cpp', 'c', 'php', 'rb', 'go', 'rs'],
-    text: ['txt', 'md', 'csv', 'log', 'yml', 'yaml', 'ini', 'cfg']
+    image: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"],
+    document: [
+      "pdf",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+      "txt",
+      "rtf",
+      "odt",
+      "ods",
+      "odp",
+    ],
+    archive: ["zip", "rar", "7z", "tar", "gz", "bz2", "xz"],
+    audio: ["mp3", "wav", "ogg", "m4a", "webm", "flac", "aac"],
+    video: ["mp4", "webm", "ogg", "avi", "mov", "wmv", "flv", "mkv"],
+    code: [
+      "js",
+      "html",
+      "css",
+      "json",
+      "xml",
+      "md",
+      "py",
+      "java",
+      "cpp",
+      "c",
+      "php",
+      "rb",
+      "go",
+      "rs",
+    ],
+    text: ["txt", "md", "csv", "log", "yml", "yaml", "ini", "cfg"],
   };
-  
+
   for (const [category, extensions] of Object.entries(categories)) {
     if (extensions.includes(extension)) {
       return category;
     }
   }
-  
-  return 'other';
+
+  return "other";
+};
+
+export const getFileIcon = (mimeOrFilename) => {
+  const mime = (mimeOrFilename || "").toLowerCase();
+  if (mime.startsWith("image/")) return "🖼️";
+  if (mime.startsWith("video/")) return "🎬";
+  if (mime.startsWith("audio/")) return "🎧";
+  if (mime.startsWith("application/pdf")) return "📕";
+
+  const category = getFileCategory(mimeOrFilename);
+  switch (category) {
+    case "document":
+      return "📄";
+    case "archive":
+      return "🗄️";
+    case "code":
+      return "💻";
+    case "text":
+      return "📝";
+    default:
+      return "📁";
+  }
 };
 
 /**
@@ -100,8 +220,11 @@ export const getFileCategory = (filename) => {
  * @param {string} chars - Characters to use
  * @returns {string} Random string
  */
-export const generateRandomString = (length = 8, chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789') => {
-  let result = '';
+export const generateRandomString = (
+  length = 8,
+  chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+) => {
+  let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -117,14 +240,17 @@ export const generateRandomString = (length = 8, chars = 'ABCDEFGHIJKLMNOPQRSTUV
 export const validateFileType = (file, allowedTypes = []) => {
   if (!file || !file.type) return false;
   if (allowedTypes.length === 0) return true;
-  
-  return allowedTypes.includes(file.type) || allowedTypes.some(type => {
-    if (type.endsWith('/*')) {
-      const category = type.split('/')[0];
-      return file.type.startsWith(category + '/');
-    }
-    return false;
-  });
+
+  return (
+    allowedTypes.includes(file.type) ||
+    allowedTypes.some((type) => {
+      if (type.endsWith("/*")) {
+        const category = type.split("/")[0];
+        return file.type.startsWith(category + "/");
+      }
+      return false;
+    })
+  );
 };
 
 /**
@@ -134,8 +260,36 @@ export const validateFileType = (file, allowedTypes = []) => {
  * @returns {boolean} Whether file size is valid
  */
 export const validateFileSize = (file, maxSize) => {
-  if (!file || typeof file.size !== 'number') return false;
+  if (!file || typeof file.size !== "number") return false;
   return file.size <= maxSize;
+};
+
+export const validateFileBeforeUpload = (file, currentFiles = []) => {
+  if (!file) {
+    return { isValid: false, error: ERRORS.UPLOAD_FAILED };
+  }
+
+  const totalFiles = currentFiles.length + 1;
+  if (totalFiles > FILE_UPLOAD.MAX_FILES_COUNT) {
+    return { isValid: false, error: ERRORS.FILES_TOO_MANY };
+  }
+
+  const totalSize =
+    currentFiles.reduce((sum, existing) => sum + (existing?.size || 0), 0) +
+    (file.size || 0);
+  if (totalSize > FILE_UPLOAD.MAX_TOTAL_SIZE) {
+    return { isValid: false, error: ERRORS.FILE_TOO_LARGE };
+  }
+
+  if (!validateFileSize(file, FILE_UPLOAD.MAX_FILE_SIZE)) {
+    return { isValid: false, error: ERRORS.FILE_TOO_LARGE };
+  }
+
+  if (!validateFileType(file, FILE_UPLOAD.SUPPORTED_TYPES)) {
+    return { isValid: false, error: ERRORS.FILE_TYPE_NOT_SUPPORTED };
+  }
+
+  return { isValid: true, error: null };
 };
 
 /**
@@ -150,20 +304,20 @@ export const copyToClipboard = async (text) => {
       return true;
     } else {
       // Fallback for older browsers
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      const success = document.execCommand('copy');
+      const success = document.execCommand("copy");
       textArea.remove();
       return success;
     }
   } catch (error) {
-    console.error('Failed to copy text to clipboard:', error);
+    console.error("Failed to copy text to clipboard:", error);
     return false;
   }
 };
@@ -201,7 +355,7 @@ export const throttle = (func, limit) => {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 };
@@ -225,8 +379,13 @@ export const calculateStoragePercentage = (used, total) => {
 export const formatDuration = (seconds) => {
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
-  return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`;
+  if (seconds < 86400)
+    return `${Math.floor(seconds / 3600)}h ${Math.floor(
+      (seconds % 3600) / 60
+    )}m`;
+  return `${Math.floor(seconds / 86400)}d ${Math.floor(
+    (seconds % 86400) / 3600
+  )}h`;
 };
 
 /**
@@ -249,15 +408,17 @@ export const isValidUrl = (url) => {
  * @returns {string} Sanitized filename
  */
 export const sanitizeFilename = (filename) => {
-  if (!filename || typeof filename !== 'string') return 'unnamed';
-  
+  if (!filename || typeof filename !== "string") return "unnamed";
+
   // Remove or replace invalid characters
-  return filename
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
-    .substring(0, 255) || 'unnamed';
+  return (
+    filename
+      .replace(/[<>:"/\\|?*]/g, "_")
+      .replace(/\s+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "")
+      .substring(0, 255) || "unnamed"
+  );
 };
 
 /**
@@ -265,7 +426,7 @@ export const sanitizeFilename = (filename) => {
  * @param {string} prefix - Optional prefix
  * @returns {string} Unique ID
  */
-export const generateUniqueId = (prefix = '') => {
+export const generateUniqueId = (prefix = "") => {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2);
   return prefix ? `${prefix}_${timestamp}_${random}` : `${timestamp}_${random}`;
@@ -277,16 +438,16 @@ export const generateUniqueId = (prefix = '') => {
  * @returns {string} User-friendly error message
  */
 export const parseErrorMessage = (error) => {
-  if (!error) return 'An unknown error occurred';
-  
-  if (typeof error === 'string') return error;
-  
+  if (!error) return "An unknown error occurred";
+
+  if (typeof error === "string") return error;
+
   if (error.message) return error.message;
-  
+
   if (error.response && error.response.data) {
     if (error.response.data.message) return error.response.data.message;
     if (error.response.data.error) return error.response.data.error;
   }
-  
-  return 'An unexpected error occurred';
+
+  return "An unexpected error occurred";
 };

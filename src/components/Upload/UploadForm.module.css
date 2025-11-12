@@ -1,0 +1,223 @@
+.uploadForm {
+  background-color: #ffffff;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--secondary-200);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-10) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  color: var(--secondary-900);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  max-width: 540px;
+  color: var(--secondary-600);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  background: var(--secondary-50);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--secondary-200);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 90px;
+}
+
+.statValue {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-900);
+}
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--secondary-500);
+}
+
+.statusMessage {
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid transparent;
+}
+
+.statusMessage.success {
+  background: var(--success-50, #ecfdf5);
+  border-color: var(--success-200, #bbf7d0);
+  color: var(--success-700, #047857);
+}
+
+.statusMessage.error {
+  background: var(--error-50, #fef2f2);
+  border-color: var(--error-200, #fecaca);
+  color: var(--error-700, #b91c1c);
+}
+
+.statusMessage.warning {
+  background: var(--warning-50, #fffbeb);
+  border-color: var(--warning-200, #fde68a);
+  color: var(--warning-700, #b45309);
+}
+
+.statusMessage.info {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+  color: var(--primary-700);
+}
+
+.queueSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.overallProgress {
+  background: var(--secondary-50);
+  border: 1px solid var(--secondary-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: flex-end;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.secondaryButton {
+  background: transparent;
+  color: var(--secondary-700);
+  border: 1px solid var(--secondary-300);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background-color: var(--secondary-100);
+  border-color: var(--secondary-400);
+  color: var(--secondary-800);
+}
+
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 1023px) {
+  .summary {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 767px) {
+  .uploadForm {
+    padding: var(--space-8);
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .stat {
+    min-width: unset;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 479px) {
+  .uploadForm {
+    padding: var(--space-6);
+  }
+
+  .summary {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .stat {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .statValue {
+    font-size: var(--font-size-lg);
+  }
+}

@@ -1,0 +1,100 @@
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--secondary-50);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fileName {
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-800);
+  font-size: var(--font-size-sm);
+}
+
+.percent {
+  font-family: var(
+    --font-family-mono,
+    "SFMono-Regular",
+    ui-monospace,
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace
+  );
+  color: var(--secondary-500);
+  font-size: var(--font-size-xs);
+}
+
+.cancelButton {
+  border: none;
+  background: none;
+  color: var(--primary-600);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  text-decoration: underline;
+}
+
+.track {
+  position: relative;
+  height: 10px;
+  width: 100%;
+  background: var(--secondary-100);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  transition: width var(--transition-fast);
+}
+
+.success .fill {
+  background: linear-gradient(
+    135deg,
+    var(--success-500, #10b981),
+    var(--success-600, #059669)
+  );
+}
+
+.error .fill {
+  background: linear-gradient(
+    135deg,
+    var(--error-500, #ef4444),
+    var(--error-600, #dc2626)
+  );
+}
+
+.success,
+.error {
+  font-size: var(--font-size-xs);
+}
+
+.success {
+  color: var(--success-700, #047857);
+}
+
+.error {
+  color: var(--error-600, #dc2626);
+}

@@ -1,0 +1,52 @@
+name: Infrastructure CI
+
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/**'
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: '18'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install --workspaces
+
+      - name: Lint infrastructure
+        run: |
+          npm run lint --workspace infrastructure
+
+      - name: Build infrastructure
+        run: |
+          npm run build --workspace infrastructure
+
+      - name: Test infrastructure
+        run: |
+          npm test --workspace infrastructure -- --runInBand
+
+      - name: CDK synth validation
+        run: |
+          npm run synth --workspace infrastructure

@@ -1,0 +1,23 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/dropify.ts",
+  "context": {
+    "@aws-cdk/core:newStyleStackSynthesis": true,
+    "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
+    "@aws-cdk/aws-lambda:recognizeVersionProps": true,
+    "@aws-cdk/aws-lambda:enableProfiling": true,
+    "@aws-cdk/aws-ecr-assets:dockerIgnoreSupport": true,
+    "@aws-cdk/aws-secretsmanager:parseOwnedSecretName": true,
+    "@aws-cdk/aws-secretsmanager:batchPermissions": true,
+    "@aws-cdk/aws-kms:defaultKeyPolicies": true,
+    "environments": {
+      "dev": {
+        "stage": "dev",
+        "description": "Dropify development environment"
+      },
+      "prod": {
+        "stage": "prod",
+        "description": "Dropify production environment"
+      }
+    }
+  }
+}

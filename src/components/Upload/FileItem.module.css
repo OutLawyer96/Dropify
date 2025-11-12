@@ -1,0 +1,201 @@
+.fileItem {
+  border: 1px solid var(--secondary-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  background-color: #ffffff;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.fileItem.pending:hover,
+.fileItem.uploading:hover {
+  border-color: var(--primary-300);
+  box-shadow: var(--shadow-md);
+}
+
+.headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.meta {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-900);
+  font-size: var(--font-size-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 360px;
+}
+
+.size {
+  font-size: var(--font-size-xs);
+  color: var(--secondary-500);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.statusRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--secondary-100);
+  color: var(--secondary-700);
+}
+
+.pendingBadge {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary-600);
+}
+
+.uploadingBadge {
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--sky-600, #0284c7);
+}
+
+.successBadge {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success-600, #059669);
+}
+
+.errorBadge {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error-600, #dc2626);
+}
+
+.timestamp {
+  font-size: var(--font-size-xs);
+  color: var(--secondary-500);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actionButton {
+  background: transparent;
+  border: 1px solid var(--secondary-300);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.actionButton:hover {
+  background-color: var(--secondary-100);
+  border-color: var(--secondary-400);
+  color: var(--secondary-800);
+}
+
+.actionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.shareRow {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: var(--font-size-sm);
+}
+
+.shareLink {
+  color: var(--primary-600);
+  word-break: break-all;
+}
+
+.shareLink:hover {
+  text-decoration: underline;
+}
+
+.copyButton {
+  background: var(--primary-100);
+  color: var(--primary-700);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.copyButton:hover {
+  background: var(--primary-200);
+  color: var(--primary-800);
+}
+
+.errorMessage {
+  font-size: var(--font-size-sm);
+  color: var(--error-600, #dc2626);
+  background: rgba(254, 226, 226, 0.35);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
+@media (max-width: 639px) {
+  .headline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .meta {
+    align-items: flex-start;
+  }
+
+  .name {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}

@@ -1,0 +1,59 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Deployment stage (dev/prod)'
+        required: false
+        default: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      NODE_VERSION: '18'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install --workspace infrastructure
+
+      - name: Determine stage
+        id: stage
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "stage=prod" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_name }}" = "develop" ]; then
+            echo "stage=dev" >> "$GITHUB_OUTPUT"
+          else
+            echo "stage=${{ github.event.inputs.stage }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CDK_DEPLOY_ROLE }}
+          aws-region: us-east-1
+
+      - name: Run CDK deploy
+        run: |
+          npm run deploy:${{ steps.stage.outputs.stage }} --workspace infrastructure -- --require-approval never
