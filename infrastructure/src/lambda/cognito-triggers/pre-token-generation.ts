@@ -1,4 +1,6 @@
-export const handler = async (event: any) => {
+import type { PreTokenGenerationTriggerEvent } from "aws-lambda";
+
+export const handler = async (event: PreTokenGenerationTriggerEvent) => {
   try {
     // Lazy require DynamoDB Document client
     // eslint-disable-next-line @typescript-eslint/no-var-requires

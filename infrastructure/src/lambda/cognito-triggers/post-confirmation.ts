@@ -1,23 +1,24 @@
 import { DEFAULT_PLAN, USER_PLANS } from "../shared/constants";
 import { getStorageLimitForPlan } from "../shared/dynamodb-helpers";
+import type { PostConfirmationTriggerEvent } from "aws-lambda";
 
 const MAX_RETRIES = 3;
 
-const isRetryable = (error: any): boolean => {
+const isRetryable = (error: Error & { name?: string; $metadata?: { httpStatusCode?: number } }): boolean => {
   if (!error) return false;
   const codes = [
     "ProvisionedThroughputExceededException",
     "ThrottlingException",
   ]; // common retryable errors
-  if (codes.includes(error.name)) return true;
+  if (error.name && codes.includes(error.name)) return true;
   const status = error.$metadata?.httpStatusCode;
-  return status && status >= 500;
+  return status ? status >= 500 : false;
 };
 
 const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export const handler = async (event: any) => {
+export const handler = async (event: PostConfirmationTriggerEvent) => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
   // eslint-disable-next-line @typescript-eslint/no-var-requires

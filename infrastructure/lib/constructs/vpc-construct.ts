@@ -1,10 +1,9 @@
 import { aws_ec2 as ec2 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { EnvironmentConfig, Stage } from '../types';
+import { Stage } from '../types';
 
 export interface VpcConstructProps {
   stage: Stage;
-  environmentConfig: EnvironmentConfig;
 }
 
 export class VpcConstruct extends Construct {

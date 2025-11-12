@@ -1,4 +1,6 @@
-export const handler = async (event: any) => {
+import type { PreSignUpTriggerEvent } from "aws-lambda";
+
+export const handler = async (event: PreSignUpTriggerEvent) => {
   // Auto-confirm users who sign up via email
   try {
     // You can add custom validation here (allowed domains, banned emails, etc.)

@@ -6,9 +6,10 @@ import type {
   DynamoDBFileRecord,
   DynamoDBUserRecord,
 } from "../../../lib/types";
+import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 interface DynamoClients {
-  docClient: any;
+  docClient: DynamoDBDocumentClient;
 }
 
 let cachedClients: DynamoClients | null = null;

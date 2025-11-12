@@ -22,21 +22,22 @@ import { logError } from "../shared/error-handler";
 
 const MAX_DDB_RETRIES = 3;
 
-const isRetryable = (error: any): boolean => {
+const isRetryable = (error: Error & { name?: string; $metadata?: { httpStatusCode?: number } }): boolean => {
   if (!error) return false;
   const retryableNames = [
     "ProvisionedThroughputExceededException",
     "ThrottlingException",
     "RequestLimitExceeded",
   ];
-  if (retryableNames.includes(error.name)) return true;
+  if (error.name && retryableNames.includes(error.name)) return true;
   const status = error.$metadata?.httpStatusCode;
-  return status && status >= 500;
+  return status ? status >= 500 : false;
 };
 
 const backoff = (attempt: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, 2 ** attempt * 100));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cachedDocClient: any;
 
 const getDocClient = () => {
